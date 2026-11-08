@@ -1,0 +1,207 @@
+/*
+  Design units: everything inside #ad is laid out in the 360x640 design space
+  (= the 720x1280 @2x assets at 50%). index.js scales #ad to the viewport with one transform.
+*/
+:root {
+  --navy: #0b1e49;
+  --gut-wall: #d89c95; /* bottom row colour of border.png, used to extend it on tall phones */
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--navy);
+  overscroll-behavior: none;
+}
+
+body {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#ad {
+  --extra: 0px; /* extra stage height (design px) on phones taller than 9:16 */
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: calc(640px + var(--extra));
+  overflow: hidden;
+  transform-origin: 0 0;
+  touch-action: none; /* taps are game input, no double-tap zoom / scroll */
+  cursor: pointer;
+  background: var(--navy);
+  font-family: system-ui, sans-serif;
+}
+
+#ad.is-loading > * {
+  visibility: hidden;
+}
+
+img {
+  display: block;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+/* Full-frame 720x1280 layers rendered at 50% */
+.full {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 640px;
+  pointer-events: none;
+}
+
+.bg {
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Everything below the logo bar is shifted down by half the extra height, so it stays centred */
+.shifted {
+  position: absolute;
+  left: 0;
+  top: calc(var(--extra) / 2);
+  width: 360px;
+  height: 640px;
+}
+
+.scene,
+.endcard {
+  position: absolute;
+  inset: 0;
+}
+
+.endcard {
+  background: var(--navy);
+}
+
+/* The bean texture reaches into the headline band; the design shows it only inside the gut area */
+#texture {
+  clip-path: inset(168.5px 0 0 0);
+}
+
+/* ?overlay=1 – design file on top at 50% to check alignment */
+#design-overlay {
+  position: absolute;
+  left: 0;
+  top: calc(var(--extra) / 2);
+  width: 360px;
+  height: 640px;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 10;
+}
+
+#game {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 100%;
+}
+
+#floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(var(--extra) / 2 + 1px);
+  background: var(--gut-wall);
+}
+
+.decor,
+#gesture {
+  position: absolute;
+  pointer-events: none;
+}
+
+#gesture {
+  left: 147.5px;
+  top: 452px;
+  width: 86.5px;
+}
+
+#logo {
+  z-index: 5;
+}
+
+#confetti {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 360px;
+  height: 640px;
+  pointer-events: none;
+}
+
+/* Buttons wrap the provided button images */
+.btn {
+  position: absolute;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  border-radius: 24px;
+}
+
+.btn img {
+  width: 100%;
+  height: auto;
+}
+
+.btn:focus-visible,
+#mute:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
+/* Mute toggle, top-right inside the white logo bar */
+#mute {
+  position: absolute;
+  z-index: 6;
+  top: 15px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--navy);
+  cursor: pointer;
+}
+
+#mute svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#mute .spk {
+  fill: #fff;
+}
+
+#mute .off,
+#mute[aria-pressed='true'] .on {
+  display: none;
+}
+
+#mute[aria-pressed='true'] .off {
+  display: inline;
+}

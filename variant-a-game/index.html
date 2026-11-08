@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="ad.size" content="width=360,height=640" />
+    <title>Gut Run</title>
+    <link rel="preload" href="assets/01_game/gameplay.png" as="image" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!--
+      #ad is the 360x640 design stage. JS scales it to the viewport (see fit() in index.js)
+      and may make it taller than 640 on long phones (--extra = added height in design px).
+    -->
+    <div id="ad" class="is-loading" aria-label="Gut Run Spiel-Anzeige">
+      <!-- ── Game scene ─────────────────────────────────────────── -->
+      <section id="scene" class="scene">
+        <img class="full bg" src="assets/bg.jpg" alt="" />
+        <div class="shifted">
+          <img
+            class="full"
+            id="texture"
+            src="assets/01_game/bg_texture.png"
+            alt=""
+          />
+        </div>
+        <canvas id="game" aria-hidden="true"></canvas>
+        <div class="shifted" id="decor">
+          <!-- Obstacles shown on the start screen only (positions measured from design/01-start.png) -->
+          <img
+            class="decor"
+            src="assets/01_game/bac6.png"
+            alt=""
+            style="left: 93.5px; top: 330px; width: 35px"
+          />
+          <img
+            class="decor"
+            src="assets/01_game/txt1.png"
+            alt=""
+            style="left: 100px; top: 373px; width: 21.85px"
+          />
+          <img
+            class="decor"
+            src="assets/01_game/bac2.png"
+            alt=""
+            style="left: 275px; top: 330.5px; width: 19.35px"
+          />
+          <img
+            class="decor"
+            src="assets/01_game/txt2.png"
+            alt=""
+            style="left: 301.5px; top: 389px; width: 34px"
+          />
+        </div>
+        <div class="shifted">
+          <img class="full" id="border" src="assets/border.png" alt="" />
+        </div>
+        <div id="floor"></div>
+        <div class="shifted">
+          <img
+            class="full"
+            id="headline"
+            src="assets/01_game/tut.png"
+            alt="Bringe Poo durch den Darm ans Ziel."
+          />
+          <img id="gesture" src="assets/gesture.png" alt="tap to run" />
+        </div>
+      </section>
+
+      <!-- ── Fail endcard ───────────────────────────────────────── -->
+      <section id="fail" class="endcard" hidden>
+        <div class="shifted">
+          <img
+            class="full"
+            data-el="bubble"
+            src="assets/02_endcard/fail/bubble.png"
+            alt=""
+          />
+          <img class="full bac" src="assets/02_endcard/fail/bac1.png" alt="" />
+          <img class="full bac" src="assets/02_endcard/fail/bac2.png" alt="" />
+          <img class="full bac" src="assets/02_endcard/fail/bac3.png" alt="" />
+          <img class="full bac" src="assets/02_endcard/fail/bac4.png" alt="" />
+          <img class="full bac" src="assets/02_endcard/fail/bac5.png" alt="" />
+          <img
+            class="full"
+            data-el="poo"
+            src="assets/02_endcard/fail/sad.png"
+            alt=""
+          />
+          <img
+            class="full"
+            data-el="hl"
+            src="assets/02_endcard/fail/hl.png"
+            alt="Poo, das tat weh! Erfahre jetzt, was deinem Darm guttut."
+          />
+          <button
+            class="btn cta"
+            data-el="cta"
+            style="left: 37px; top: 482.5px; width: 186px"
+            type="button"
+          >
+            <img
+              src="assets/02_endcard/fail/cta.png"
+              alt="Jetzt informieren!"
+            />
+          </button>
+          <button
+            class="btn"
+            id="replay"
+            data-el="replay"
+            style="left: 37.5px; top: 538.5px; width: 185.5px"
+            type="button"
+          >
+            <img
+              src="assets/02_endcard/fail/replay.png"
+              alt="Nochmal spielen"
+            />
+          </button>
+        </div>
+      </section>
+
+      <!-- ── Win endcard ────────────────────────────────────────── -->
+      <section id="win" class="endcard" hidden>
+        <div class="shifted">
+          <img
+            class="full"
+            data-el="bubble"
+            src="assets/02_endcard/win/bubble.png"
+            alt=""
+          />
+          <canvas id="confetti" aria-hidden="true"></canvas>
+          <img
+            class="full"
+            data-el="konfetti"
+            src="assets/02_endcard/win/konfetti.png"
+            alt=""
+          />
+          <img
+            class="full"
+            data-el="poo"
+            src="assets/02_endcard/win/happy.png"
+            alt=""
+          />
+          <img
+            class="full"
+            data-el="hl"
+            src="assets/02_endcard/win/hl.png"
+            alt="Poo, tut das gut! Wenn du weißt, was dein Darm braucht."
+          />
+          <button
+            class="btn cta"
+            data-el="cta"
+            style="left: 28px; top: 560px; width: 214px"
+            type="button"
+          >
+            <img
+              src="assets/02_endcard/win/cta.png"
+              alt="Jetzt mehr erfahren"
+            />
+          </button>
+        </div>
+      </section>
+
+      <!-- Logo bar sits above every screen -->
+      <img class="full" id="logo" src="assets/logo.png" alt="Your Logo" />
+
+      <button id="mute" type="button" aria-pressed="false" aria-label="Ton aus">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path class="spk" d="M4 9h4l5-4v14l-5-4H4z" />
+          <path
+            class="on"
+            d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12"
+          />
+          <path class="off" d="M16 9l6 6M22 9l-6 6" />
+        </svg>
+      </button>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="./index.js"></script>
+  </body>
+</html>
