@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fireplace – preview</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #1e1e1e;
+        font-family: system-ui, sans-serif;
+      }
+      /* 1680x975 canvas: left 320 | 4 | top 1032 | 4 | right 320 */
+      .stage {
+        position: relative;
+        width: 1680px;
+        height: 975px;
+        transform-origin: 0 0;
+      }
+      iframe {
+        position: absolute;
+        top: 0;
+        border: 0;
+        display: block;
+      }
+      #left {
+        left: 0;
+        width: 320px;
+        height: 975px;
+      }
+      #top {
+        left: 324px;
+        width: 1032px;
+        height: 250px;
+      }
+      #right {
+        left: 1360px;
+        width: 320px;
+        height: 975px;
+      }
+      .site {
+        position: absolute;
+        left: 324px;
+        top: 254px;
+        width: 1032px;
+        height: 721px;
+        background: #f4f4f2;
+        color: #999;
+        display: grid;
+        place-items: center;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage" id="stage">
+      <iframe id="left" title="Fireplace left" scrolling="no"></iframe>
+      <iframe id="top" title="Fireplace top" scrolling="no"></iframe>
+      <iframe id="right" title="Fireplace right" scrolling="no"></iframe>
+      <div class="site">publisher website</div>
+    </div>
+    <script>
+      // Forward query params (e.g. ?overlay=1) to the parts
+      const qs = location.search;
+      const frames = ['left', 'top', 'right'].map((id) => {
+        const f = document.getElementById(id);
+        f.src = `${id}.html${qs}`;
+        return f;
+      });
+
+      // Start all parts at the same moment once every part has loaded its assets
+      const ready = new Set();
+      window.addEventListener('message', (e) => {
+        if (!e.data || e.data.type !== 'fireplace:ready') return;
+        ready.add(e.data.part);
+        if (ready.size === frames.length) {
+          frames.forEach((f) => f.contentWindow.postMessage({ type: 'fireplace:start' }, '*'));
+        }
+      });
+
+      // Scale the 1680px stage down to fit the window (preview only)
+      const stage = document.getElementById('stage');
+      const fit = () => {
+        const s = Math.min(1, window.innerWidth / 1680);
+        stage.style.transform = `scale(${s})`;
+      };
+      window.addEventListener('resize', fit);
+      fit();
+    </script>
+  </body>
+</html>
