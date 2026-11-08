@@ -27,7 +27,6 @@
     [82.5, 145],
     [145, 250],
   ]; // y-bands of the three lines in top/hl.png
-  const IDLE_SECONDS = 30; // looping animation stops after ~30 s
 
   const part = document.querySelector('.part');
   const name = part.dataset.part;
@@ -64,31 +63,33 @@
   part.addEventListener('click', () => window.open(getClickTag(), '_blank'));
 
   // ─── Animation ───────────────────────────────────────────────────────────
-  // Hidden start state is set immediately (before images finish loading) to avoid a flash.
+  // The timeline is built paused right away: from()/fromTo() render their start state immediately,
+  // so nothing flashes in its final position while the images load.
+  // With prefers-reduced-motion the timeline stays empty → the final state is shown, without motion.
   const intro = gsap.timeline({ paused: true, onComplete: idle });
 
-  if (REDUCED_MOTION) {
-    // final state, no motion
-  } else if (name === 'top') {
+  if (!REDUCED_MOTION) {
     intro.fromTo(bg, { scale: 1.12 }, { scale: 1, duration: 5, ease: 'power2.out' }, 0);
-    $$('.hl-line img').forEach((img, i) => {
-      const h = TOP_LINES[i][1] - TOP_LINES[i][0];
-      intro.from(img, { y: h * 0.8, autoAlpha: 0, duration: 0.8, ease: 'power3.out' }, 0.6 + i * 0.5);
-    });
-  } else {
-    intro
-      .fromTo(bg, { scale: 1.12 }, { scale: 1, duration: 5, ease: 'power2.out' }, 0)
-      .from($('.logo'), { scale: 0.85, autoAlpha: 0, duration: 0.8, ease: 'back.out(1.7)', transformOrigin: '160px 125px' }, 0.4)
-      .from($('.box'), { y: 60, autoAlpha: 0, duration: 0.9, ease: 'power3.out' }, 1.4)
-      .from($('.copy'), { y: 20, autoAlpha: 0, duration: 0.8, ease: 'power3.out' }, 1.9)
-      .from($('.cta'), { scale: 0.6, autoAlpha: 0, duration: 0.6, ease: 'back.out(2)' }, 3.2);
-  }
-  intro.progress(0);
 
-  // Calm loop after the intro, stops after IDLE_SECONDS
+    if (name === 'top') {
+      // headline builds line by line
+      $$('.hl-line img').forEach((img, i) => {
+        const h = TOP_LINES[i][1] - TOP_LINES[i][0];
+        intro.from(img, { y: h * 0.8, autoAlpha: 0, duration: 0.8, ease: 'power3.out' }, 0.6 + i * 0.5);
+      });
+    } else {
+      intro
+        .from($('.logo'), { scale: 0.85, autoAlpha: 0, duration: 0.8, ease: 'back.out(1.7)', transformOrigin: '160px 125px' }, 0.4)
+        .from($('.box'), { y: 60, autoAlpha: 0, duration: 0.9, ease: 'power3.out' }, 1.4)
+        .from($('.copy'), { y: 20, autoAlpha: 0, duration: 0.8, ease: 'power3.out' }, 1.9)
+        .from($('.cta'), { scale: 0.6, autoAlpha: 0, duration: 0.6, ease: 'back.out(2)' }, 3.2);
+    }
+  }
+
+  // Calm loop after the intro. It runs ~24 s, so together with the ~5 s intro all motion stops after ~30 s.
   function idle() {
     if (REDUCED_MOTION) return;
-    const breathe = 6; // seconds per half cycle → 4 halves = 24 s (+ ~5 s intro ≈ IDLE_SECONDS)
+    const breathe = 6; // seconds per half cycle → 4 halves = 24 s
     gsap.to(bg, {
       scale: 1.03,
       duration: breathe,
@@ -96,7 +97,7 @@
       yoyo: true,
       repeat: 3, // odd repeat count → ends back at scale 1
     });
-    const cta = $('.cta');
+    const cta = $('.cta'); // the top banner has no CTA
     if (cta) gsap.to(cta, { scale: 1.05, duration: 0.9, ease: 'sine.inOut', yoyo: true, repeat: 15, repeatDelay: 0.4 });
   }
 
@@ -112,16 +113,19 @@
     if (e.data && e.data.type === 'fireplace:start') start();
   });
 
-  const imagesLoaded = Promise.all(
-    [...document.images].map((img) => (img.complete ? null : new Promise((r) => (img.onload = img.onerror = r))))
-  );
-  const bgLoaded = new Promise((r) => {
-    const i = new Image();
-    i.onload = i.onerror = r;
-    i.src = 'assets/bg-big.jpg';
-  });
+  // Resolves once the image has loaded (or failed – a broken image must not block the ad)
+  const loaded = (img) =>
+    new Promise((resolve) => {
+      if (img.complete) return resolve();
+      img.addEventListener('load', resolve, { once: true });
+      img.addEventListener('error', resolve, { once: true });
+    });
 
-  Promise.all([imagesLoaded, bgLoaded]).then(() => {
+  // bg-big.jpg is a CSS background, so it gets its own Image() to know when it's ready
+  const bgImage = new Image();
+  bgImage.src = 'assets/bg-big.jpg';
+
+  Promise.all([...document.images, bgImage].map(loaded)).then(() => {
     if (window.parent !== window) {
       // Inside preview.html: report ready and wait for the shared start signal (fallback after 2 s)
       window.parent.postMessage({ type: 'fireplace:ready', part: name }, '*');

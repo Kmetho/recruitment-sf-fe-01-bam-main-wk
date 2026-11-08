@@ -284,13 +284,13 @@
     playerOffsetY: 0, // visual-only offset (intro drop, idle bob)
     playerOffsetX: 0,
     playerRot: 0,
-    playerScale: 1,
     playerAlpha: 1,
   };
   let vy = 0;
   let scroll = 0;
-  let lastHit = null; // what ended the last run (debug info)
-  const trace = []; // last autopilot decisions (debug info)
+  // debug info (?debug=1): what ended the last run, and the bot's last decisions
+  let lastHit = null;
+  const trace = [];
 
   // ─── Layout: fit the 360x640 stage into the viewport ───────────────────────
   // The stage is scaled to the viewport width (or height on wide screens) without distortion.
@@ -377,7 +377,6 @@
       playerOffsetY: 0,
       playerOffsetX: 0,
       playerRot: 0,
-      playerScale: 1,
       playerAlpha: 1,
     });
   }
@@ -539,7 +538,6 @@
       ctx.globalAlpha = view.playerAlpha;
       ctx.translate(PLAYER.x + PLAYER.w / 2 + view.playerOffsetX, view.playerY + PLAYER.h / 2 + view.playerOffsetY);
       ctx.rotate(view.playerRot);
-      ctx.scale(view.playerScale, view.playerScale);
       ctx.drawImage(images.player, -PLAYER.w / 2, -PLAYER.h / 2, PLAYER.w, PLAYER.h);
       ctx.restore();
     }
@@ -653,7 +651,6 @@
   // Origins = centre of each full-frame layer's opaque area (measured from the PNG alpha bbox)
   const ORIGIN = {
     bubble: '179.75px 235.25px',
-    sadPoo: '180px 241.25px',
     happyPoo: '179.75px 365px',
     konfetti: '115px 165px', // mouth of the party hat
   };
@@ -779,23 +776,21 @@
   }
 
   // ─── Input ─────────────────────────────────────────────────────────────────
-  function onTap(e) {
-    if (e.target.closest('button')) return; // buttons handle their own clicks
-    e.preventDefault();
-    if (state === 'intro' || state === 'start') {
-      startRun();
-    } else if (state === 'play') {
-      jump();
-    }
-  }
-
-  ad.addEventListener('pointerdown', onTap);
-  window.addEventListener('keydown', (e) => {
-    if (e.code !== 'Space' && e.code !== 'ArrowUp') return;
-    if (e.repeat) return;
+  // One tap: starts the run on the start screen, jumps during play, ignored otherwise.
+  function onInput() {
     if (state === 'intro' || state === 'start') startRun();
     else if (state === 'play') jump();
+  }
+
+  ad.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return; // buttons handle their own clicks
     e.preventDefault();
+    onInput();
+  });
+  window.addEventListener('keydown', (e) => {
+    if ((e.code !== 'Space' && e.code !== 'ArrowUp') || e.repeat) return;
+    e.preventDefault();
+    onInput();
   });
 
   const clickout = () => window.open(getClickTag(), '_blank');
@@ -881,7 +876,7 @@
       // console helpers for QA
       window.gutRun = { showWin, showFail, replay, getState: () => ({ state, scroll, course, lastHit, playerY: view.playerY, vy, trace }) };
     }
-    if (AUTOPLAY) setTimeout(() => state === 'intro' || state === 'start' ? startRun() : null, 2000);
+    if (AUTOPLAY) setTimeout(onInput, 2000); // the bot "taps" to start
   }
 
   boot().catch((err) => console.error('[gut-run] failed to start', err));
