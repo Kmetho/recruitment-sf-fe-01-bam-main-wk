@@ -32,6 +32,7 @@ For the game, use mobile emulation in DevTools (Ctrl+Shift+M), e.g. iPhone SE (3
 |---|---|
 | `variant-a-game/?debug=1` | draws hitboxes (pixel masks), the generated safe path and the state |
 | `variant-a-game/?debug=1&auto=1` | a simple bot plays the run (checks that courses are winnable) |
+| `variant-a-game/?debug=1&auto=1&turbo=8` | same, 8× fast-forward (physics and GSAP sped up together) |
 | `variant-a-game/?overlay=start` / `fail` / `win` | design PNG at 50 % on top of the build |
 | `variant-b-fireplace/preview.html?overlay=1` | `layout.png` at 50 % on top of all three parts |
 

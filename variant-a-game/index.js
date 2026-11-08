@@ -16,6 +16,7 @@
   const params = new URLSearchParams(location.search);
   const DEBUG = params.get('debug') === '1'; // draws hitboxes
   const AUTOPLAY = DEBUG && params.get('auto') === '1'; // simple bot, used to test that every course is winnable
+  const TURBO = DEBUG ? Math.max(1, Number(params.get('turbo')) || 1) : 1; // debug: N fixed 60 Hz physics steps per frame
   const REDUCED_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   const W = 360;
@@ -27,10 +28,12 @@
   const CORRIDOR = { top: 234, bottom: 573 }; // inner edges of the cloud border (border.png alpha, avg.)
 
   const PLAYER = { x: 55.5, y: 258.5, w: 42, h: 41 }; // start position measured from design/01-start.png
-  const PHYS = { gravity: 1500, jump: -430, maxFall: 640 }; // px/s², px/s
+  // One jump rises jump² / (2·gravity) ≈ 53 px – less than the free space above the player inside the
+  // safe gap (PATH_CLEARANCE − PLAYER.h / 2 ≈ 59 px), so a single tap can never hit the obstacle above.
+  const PHYS = { gravity: 1500, jump: -400, maxFall: 640 }; // px/s², px/s
   const SPEED = { start: 105, end: 145 }; // scroll speed in px/s, ramps up linearly over the run
   const GET_READY = 1.1; // seconds between first tap and gravity kicking in
-  const PATH_CLEARANCE = 72; // half of the guaranteed free gap around the generated safe path
+  const PATH_CLEARANCE = 80; // half of the guaranteed free gap around the generated safe path
 
   const OBSTACLES = [
     'bac1', 'bac2', 'bac3', 'bac4', 'bac5', 'bac6',
@@ -287,6 +290,7 @@
   let vy = 0;
   let scroll = 0;
   let lastHit = null; // what ended the last run (debug info)
+  const trace = []; // last autopilot decisions (debug info)
 
   // ─── Layout: fit the 360x640 stage into the viewport ───────────────────────
   // The stage is scaled to the viewport width (or height on wide screens) without distortion.
@@ -326,7 +330,8 @@
       const img = images[key];
       const w = img.naturalWidth / 2;
       const h = img.naturalHeight / 2;
-      path = clamp(path + rand(-95, 95), CORRIDOR.top + 75, CORRIDOR.bottom - 75);
+      // ±70 px per obstacle keeps the band that is safe for two neighbouring gaps ≥ ~50 px high
+      path = clamp(path + rand(-70, 70), CORRIDOR.top + 85, CORRIDOR.bottom - 85);
 
       const isText = key.startsWith('txt');
       const roomAbove = path - PATH_CLEARANCE - CORRIDOR.top;
@@ -409,7 +414,9 @@
     state = 'crash';
     sound.stopMusic();
     sound.play('crash', { volume: 0.9 });
-    if (navigator.vibrate) navigator.vibrate(60);
+    // Chrome blocks (and logs an error for) vibrate() before the user has interacted with the page
+    const userActive = !navigator.userActivation || navigator.userActivation.hasBeenActive;
+    if (navigator.vibrate && userActive) navigator.vibrate(60);
 
     // short "ouch": shake, then fall out of the picture
     newRunTimeline()
@@ -482,11 +489,24 @@
     return null;
   }
 
-  // Debug bot: tap whenever the player sinks below the safe path of the next obstacle.
+  // Debug bot: aims for the overlap of the safe gaps of all obstacles that are at or just ahead of the
+  // player, and taps whenever it sinks below the middle of that band. If the bot can't win a course,
+  // the course is unfair.
   function autopilot() {
-    const next = course.find((o) => o.x + o.w - scroll > PLAYER.x - 10) || { path: 400 };
+    let lo = CORRIDOR.top + PLAYER.h / 2;
+    let hi = CORRIDOR.bottom - PLAYER.h / 2;
+    for (const o of course) {
+      const ox = o.x - scroll;
+      if (ox + o.w < PLAYER.x - 5 || ox > PLAYER.x + PLAYER.w + 45) continue;
+      lo = Math.max(lo, o.path - PATH_CLEARANCE + PLAYER.h / 2);
+      hi = Math.min(hi, o.path + PATH_CLEARANCE - PLAYER.h / 2);
+    }
+    const target = (lo + hi) / 2;
     const center = view.playerY + PLAYER.h / 2;
-    if (center > next.path + 8 && vy > -60) jump();
+    const tapped = center > target + 12 && vy > -60;
+    if (tapped) jump();
+    trace.push({ s: scroll | 0, c: center | 0, vy: vy | 0, t: target | 0, tap: tapped });
+    if (trace.length > 90) trace.shift();
   }
 
   function render() {
@@ -564,9 +584,15 @@
   // so replays can never stack loops or double the game speed.
   function tick(now) {
     rafId = requestAnimationFrame(tick);
-    const dt = Math.min((now - lastTime) / 1000, 1 / 30); // clamp: no huge jumps after a hiccup
+    const rawDt = (now - lastTime) / 1000;
+    const dt = Math.min(rawDt, 1 / 30); // clamp: no huge jumps after a hiccup
     lastTime = now;
-    update(dt);
+    if (TURBO > 1) {
+      // debug fast-forward: real time × TURBO in fixed 60 Hz steps (GSAP is sped up by the same factor at boot)
+      for (let left = Math.min(rawDt, 0.5) * TURBO; left > 0; left -= 1 / 60) update(Math.min(left, 1 / 60));
+    } else {
+      update(dt);
+    }
     render();
     if (confettiParticles.length) renderConfetti(dt);
   }
@@ -847,9 +873,13 @@
     ad.classList.remove('is-loading');
     playIntro();
     startLoop();
+    if (TURBO > 1) {
+      gsap.globalTimeline.timeScale(TURBO);
+      gsap.ticker.lagSmoothing(500, 500); // same 0.5 s frame cap as the turbo physics, so both stay in sync
+    }
     if (DEBUG) {
       // console helpers for QA
-      window.gutRun = { showWin, showFail, replay, getState: () => ({ state, scroll, course, lastHit, playerY: view.playerY, vy }) };
+      window.gutRun = { showWin, showFail, replay, getState: () => ({ state, scroll, course, lastHit, playerY: view.playerY, vy, trace }) };
     }
     if (AUTOPLAY) setTimeout(() => state === 'intro' || state === 'start' ? startRun() : null, 2000);
   }
