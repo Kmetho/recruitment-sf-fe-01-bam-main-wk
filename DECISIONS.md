@@ -1,4 +1,4 @@
-# Decisions (draft – to be polished)
+# Decisions
 
 ## Variant A – Gut Run
 
@@ -25,13 +25,6 @@
 - After the intro: background "breathing" (scale 1 ↔ 1.03, 4 × 6 s) and a CTA pulse. Both stop after about 30 s. `prefers-reduced-motion` shows the final state with no motion.
 - `?overlay=1` (also on `preview.html`) places `design/layout.png` at 50 % on top of each part.
 
-## Asset / design mismatches (worth asking the client about)
-
-- Top banner: `top/hl.png` says **"STARK BEI / HUSTENREIZ & / HALSSCHMERZEN."**, but `layout.png` shows **"NATÜRLICH STARK / BEI HUSTENREIZ & / HALSSCHMERZEN."** I used the asset.
-- Right product in `bg-big.jpg` is about 12 % larger than in `layout.png`, which was built from the per-part cuts.
-- `gesture.png` says **"tab to run"** (typo; the brief says "tap to run").
-- Endcard headlines (`hl.png`) are set about 3 % wider than the text in the mock-ups. Top, left and height match, so I kept the asset at 50 %.
-- Start-screen obstacles in `01-start.png` are scaled versions of the sprites (e.g. bac6 at ~0.7).
 
 ## Weight
 
