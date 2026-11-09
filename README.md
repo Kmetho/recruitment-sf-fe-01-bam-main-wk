@@ -65,12 +65,11 @@ TODO: compress `bg-big.jpg` (and note the tool and settings here).
 
 ## With more time
 
-- Recompress `bg-big.jpg`, or ship per-part crops of it (with a margin for the zoom) so each separate ad downloads less.
+- Recompress `bg-big.jpg`, or ship per-part crops of it so each separate ad downloads less.
 - Ask for a separate product PNG so the product can slide in on its own (it is baked into the background).
-- Test on real devices (especially iOS Safari: audio unlock, toolbar heights).
+- Test on real devices.
 - Re-encode the audio (the applause file alone is 600 KB) and trim the music loop.
 - Self-host GSAP for ad servers that don't allow CDNs.
-- Add a few Playwright smoke tests: start → crash → replay, and the timing sync of the fireplace parts.
 
 ## Known issues / shortcuts
 
@@ -82,10 +81,25 @@ TODO: compress `bg-big.jpg` (and note the tool and settings here).
 
 ## How I used AI
 
-<!-- TODO: put this in your own words -->
-I used Claude Code to scaffold both variants, measure asset positions against the design files, and draft the docs. I reviewed, tested and adjusted the output myself. Places where it was wrong and had to be fixed:
+I used **Claude Code** (desktop app) for this task, and to be clear about the split: the AI wrote most of the code and the first drafts of the docs. My part was directing, constraining, running and reviewing it.
 
-- **Fireplace zoom broke the seams.** The first version gave each part only its own slice of the background and scaled it around the centre of the whole fireplace. That pulled the image away from the outer edge of the side parts. Fixed by giving every part the full 1680 px layer, shifted to its window.
-- **Win screen never appeared.** Tweens were added to a GSAP timeline that had already finished, and GSAP drops finished timelines, so the win animation silently never ran. Fixed by starting a fresh timeline for each phase.
-- **Render loop started too early.** The `IntersectionObserver` fires on page load and started the render loop before the hitbox masks were built, which crashed debug mode. Fixed by not starting the loop before boot completes.
-- It assumed the pre-cut per-part backgrounds line up at the seams. They don't, so `bg-big.jpg` is used instead.
+**What the AI did**
+- Wrote the HTML, CSS and JavaScript for both variants.
+- Tested the game in its built-in browser at phone sizes, including a debug bot that plays many runs in a row.
+- Drafted this README, `DECISIONS.md` and `QUESTIONS.md`.
+
+**What I did**
+- Set the scope and the rules. When it started measuring everything at once, I told it to build a working skeleton first and leave the pixel polish to me. When it set up its own dev server and installed extra tools, I had it remove them.
+- Run the server myself.
+- Ran both ads locally and reported what went wrong.
+- Made the project decisions.
+
+**Where the AI output was wrong**
+
+Most of these were caught by the AI's own testing, not by me. That's exactly why I had it test instead of trusting the first version:
+
+- **Win screen never appeared.** It added tweens to a GSAP timeline that had already finished. GSAP removes finished timelines, so the win animation silently never ran. Fixed by starting a fresh timeline for each phase of a run.
+- **The game was unfairly hard.** One jump rose about 61 px, but the free space above the player in a gap was only about 51 px, so a single tap could hit the obstacle above. Neighbouring gaps could also leave a band only ~24 px high. The bot won 7 of 12 runs. After retuning (smaller jump, bigger gap, smaller height changes) it won 33 of 34.
+- **Fireplace zoom broke the seams.** The first version gave each part only its own slice of the background and zoomed it around the centre of the whole fireplace, which pulled the image away from the outer edges. Fixed by giving every part the full background layer, shifted to its window.
+- **Wrong assumption about the assets.** It assumed the pre-cut backgrounds line up at the seams (they don't) and that the PNGs have transparency (four of them don't). Both only showed up once it compared and rendered them.
+- **Its own test tool was wrong too.** The first fast-forward mode sped up the physics but not GSAP. That produced fake crashes, which it first blamed on the game.
